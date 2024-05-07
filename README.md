@@ -20,7 +20,7 @@ the user to log in frequently.
 ## Single session for one user
 In a typical single session (one device for one user), the flow is as follows:
 
-![img.png](img.png)
+![img.png](flow.png)
 
 Stealing tokens(and information at all) is not easy if you use HTTPS, but still. Let's see some cases:
 * If hacker somehow manages to steal an access-token, he will be able to do his dirty thing for a short time.<br>
