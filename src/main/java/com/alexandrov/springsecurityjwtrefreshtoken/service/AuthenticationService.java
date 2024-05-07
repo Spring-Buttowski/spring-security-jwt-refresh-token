@@ -2,7 +2,7 @@ package com.alexandrov.springsecurityjwtrefreshtoken.service;
 
 import com.alexandrov.springsecurityjwtrefreshtoken.constants.ProjectConstants;
 import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.AuthenticationRequest;
-import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.AuthenticationResponse;
+import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.AccessAndRefreshToken;
 import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.SingUpRequest;
 import com.alexandrov.springsecurityjwtrefreshtoken.model.entity.User;
 import com.alexandrov.springsecurityjwtrefreshtoken.model.entity.UserSession;
@@ -46,7 +46,7 @@ public class AuthenticationService {
     }
 
     //    @Transactional
-    public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) {
+    public AccessAndRefreshToken authenticate(AuthenticationRequest authenticationRequest) {
         //Check whether credentials are authentic
         Authentication authentication = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(
@@ -76,7 +76,7 @@ public class AuthenticationService {
                     .refreshToken(refreshToken)
                     .build());
 
-            return AuthenticationResponse
+            return AccessAndRefreshToken
                     .builder()
                     .refreshToken(refreshToken)
                     .accessToken(accessToken)
@@ -100,46 +100,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public AuthenticationResponse receiveNewAccessToken(HttpServletRequest request) {
-        //Take a refresh token out from headers
-        String refreshToken = getToken(request);
-
-        //Check whether a refresh token is authentic and not expired
-        if (jwtService.validateRefreshToken(refreshToken)) {
-            //We just knew that a refresh token is valid. Let's see if we have session with this user in our DB.
-            Claims claims = jwtService.getRefreshClaims(refreshToken);
-
-            //Take user's id out of token
-            String id = claims.getSubject();
-
-            //Find user in our DB by id
-            Optional<User> user = userRepository.findById(Integer.valueOf(id));
-
-            //Find user's session
-            Optional<UserSession> userSession = userSessionRepository.findUserSessionByUser(user.orElseThrow(NoSuchElementException::new));
-
-            //Check that user exists and his session's refresh token is the same as we received
-            if (userSession.isPresent() && userSession.get().getRefreshToken().equals(refreshToken)) {
-                //Create new accessToken and respond
-                String newAccessToken = jwtService.generateAccessToken(user.get());
-                return AuthenticationResponse
-                        .builder()
-                        .accessToken(newAccessToken)
-                        .refreshToken(null)
-                        .build();
-            } else {
-                throw new JwtException("Invalid token!");
-            }
-        }
-        return AuthenticationResponse
-                .builder()
-                .refreshToken(null)
-                .accessToken(null)
-                .build();
-    }
-
-    @Transactional
-    public AuthenticationResponse receiveNewRefreshToken(HttpServletRequest request) {
+    public AccessAndRefreshToken receiveNewTokens(HttpServletRequest request) {
         //Take a refresh token out from headers
         String refreshToken = getToken(request);
 
@@ -163,7 +124,7 @@ public class AuthenticationService {
                 String newRefreshToken = jwtService.generateRefreshToken(optionalUser.get());
                 String newAccessToken = jwtService.generateAccessToken(optionalUser.get());
                 optionalUserSession.get().setRefreshToken(newRefreshToken);
-                return AuthenticationResponse
+                return AccessAndRefreshToken
                         .builder()
                         .refreshToken(newRefreshToken)
                         .accessToken(newAccessToken)
@@ -172,7 +133,7 @@ public class AuthenticationService {
                 throw new JwtException("Invalid token!");
             }
         }
-        return AuthenticationResponse
+        return AccessAndRefreshToken
                 .builder()
                 .refreshToken(null)
                 .accessToken(null)

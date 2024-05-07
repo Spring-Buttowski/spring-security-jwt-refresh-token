@@ -1,7 +1,7 @@
 package com.alexandrov.springsecurityjwtrefreshtoken.controller;
 
 import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.AuthenticationRequest;
-import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.AuthenticationResponse;
+import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.AccessAndRefreshToken;
 import com.alexandrov.springsecurityjwtrefreshtoken.model.dto.SingUpRequest;
 import com.alexandrov.springsecurityjwtrefreshtoken.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,47 +38,34 @@ public class AuthenticationController {
     /**
      * Authenticate a customer. If authentication is unsuccessful, will return 4** HTTP status code.
      *
-     * @param authenticationRequest The new customer's email and password.
-     * @return access and refresh tokens and session data with HTTPS status code {@code 200} if the authentication is successful.
+     * @param authenticationRequest The customer's email and password.
+     * @return access and refresh tokens with HTTPS status code {@code 200} if the authentication is successful.
      * {@code 401} in case credentials are wrong, 400 when client is trying to authenticate second time.
      */
     @PostMapping("/authenticate")
     public ResponseEntity<?> authenticate(@RequestBody @Valid AuthenticationRequest authenticationRequest) {
-        AuthenticationResponse authenticationResponse = authenticationService.authenticate(authenticationRequest);
-        return ResponseEntity.ok(authenticationResponse);
+        AccessAndRefreshToken accessAndRefreshToken = authenticationService.authenticate(authenticationRequest);
+        return ResponseEntity.ok(accessAndRefreshToken);
     }
 
     /**
-     * Get a new access-token of a customer.
-     * If a sessionData, whether a refreshToken is not valid, will return 400 HTTP status code.
+     * Get new access and refresh token.
+     * If a refreshToken is not valid, will return 400 HTTP status code.
      *
-     * @param request The customer's refreshToken and session.
-     * @return access-token with HTTPS status code {@code 200} if the data is valid, {@code 400} otherwise.
+     * @param request HttpServletRequest with 'Authorization' header having refresh-token on board.
+     * @return refresh-token and access-token with HTTP status code {200} if the data is valid, {@code 400} otherwise.
      */
-    @PostMapping("/access-token")
-    public ResponseEntity<?> getNewAccessToken(HttpServletRequest request) {
-        AuthenticationResponse authenticationResponse = authenticationService.receiveNewAccessToken(request);
-        return ResponseEntity.ok(authenticationResponse);
-    }
-
-    /**
-     * Get a new refresh-token of a customer.
-     * If a sessionData, whether a refreshToken is not valid, will return 400 HTTP status code.
-     *
-     * @param request The customer's refreshToken and session.
-     * @return refresh-token with HTTP status code {200} if the data is valid, {@code 400} otherwise.
-     */
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> getNewRefreshToken(HttpServletRequest request) {
-        AuthenticationResponse authenticationResponse = authenticationService.receiveNewRefreshToken(request);
-        return ResponseEntity.ok(authenticationResponse);
+    @PostMapping("/refresh")
+    public ResponseEntity<?> getNewTokens(HttpServletRequest request) {
+        AccessAndRefreshToken accessAndRefreshToken = authenticationService.receiveNewTokens(request);
+        return ResponseEntity.ok(accessAndRefreshToken);
     }
 
     /**
      * Execute a logout on the particular device.
-     * If a sessionData, whether a refreshToken is not valid, will return 400 HTTP status code.
+     * If a refreshToken is not valid, will return 400 HTTP status code.
      *
-     * @param request The customer's refreshToken and session.
+     * @param request HttpServletRequest with 'Authorization' header having refresh-token on board.
      * @return {200} if the logout is successful, {@code 400} otherwise.
      */
     @PostMapping("/logout")
